@@ -1,17 +1,22 @@
 import java.lang.Math;
 import java.util.Random;
 import java.util.*;
+import java.lang.Double;
 
 public abstract class Microbe implements AgentInterface, Comparable<Microbe>,
 														 Comparator<Microbe> {
 
 	protected static int numMicrobes = 0;
-	int id;
+
+	int id;	
 
 	Environment world;
 	int[] position;
-	Microbe[] surroundings;
+	int[] surroundings;
 	Random random;
+
+	int BACTERIUM_PRESENT = 1;
+	int MACROPHAGE_PRESENT = 3;
 
 	
 	public Microbe(Environment _world) {
@@ -21,7 +26,7 @@ public abstract class Microbe implements AgentInterface, Comparable<Microbe>,
 		random = new Random();
 		
 		position = new int[] {-1, -1};
-		surroundings = new Microbe[9];
+		surroundings = new int[9];
 	}
 	
 	public int getID() {

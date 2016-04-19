@@ -7,13 +7,13 @@ public class Environment {
 	
 	int numMacrophages;
 	int numBacteria;
-	Microbe[][] landscape;
+	Cell[][] landscape;
 	
 	Random random;
 
 	Driver driver;
 	
-	public Environment(int _numRows,int _numCols,int _numMacrophages,int _numBacteria,Driver _driver) {
+	public Environment(int _numRows,int _numCols,int _numMacrophages,int _numBacteria, Driver _driver) {
 
 		driver = _driver;
 		numRows        = _numRows;
@@ -23,18 +23,23 @@ public class Environment {
 		
 		random         = new Random();
 		
-		landscape      = new Microbe[numRows][numCols];
+		landscape      = new Cell[numRows][numCols];
+		for (int i = 0; i < numRows; i++) {
+			for (int j = 0; j < numCols; j++) {
+				landscape[i][j] = new Cell();
+			}
+		}
 		
 	}
 	
 	public int[] moveMicrobe(Microbe agent, int rowOff, int colOff) {
 		int currentRow = agent.getRow();
 		int currentCol = agent.getCol();
-		landscape[(currentRow + numRows) % numRows][(currentCol + numCols) % numCols] = null;
+		landscape[(currentRow + numRows) % numRows][(currentCol + numCols) % numCols].removeMicrobe(agent);
 		
 		int newRow = (currentRow + rowOff + numRows) % numRows;
 		int newCol = (currentCol + colOff + numCols) % numCols;
-		landscape[newRow][newCol] = agent;
+		landscape[newRow][newCol].setMicrobe(agent);
 		
 		return new int[] {newRow, newCol};
 	}
@@ -46,31 +51,113 @@ public class Environment {
 		do {
 			row = random.nextInt(numRows);
 			col = random.nextInt(numCols);
-		} while (landscape[(row+numRows) % numRows][(col+numCols) % numCols] != null);
+		} while (!isEmpty((row+numRows) % numRows,(col+numCols) % numCols));
 		
-		landscape[(row+numRows) % numRows][(col+numCols) % numCols] = agent;
+		landscape[(row+numRows) % numRows][(col+numCols) % numCols].setMicrobe(agent);
 		agent.setRowCol((row+numRows) % numRows, (col+numCols) % numCols);
 	}
 
 	// add a microbe to the environment in a specified space
 	// (as a result of a divide)
 	public void addMicrobe(Microbe agent, int row, int col) {
-		landscape[(row+numRows) % numRows][(col+numCols) % numCols] = agent;
-		if (agent instanceof Bacterium)
+		landscape[(row+numRows) % numRows][(col+numCols) % numCols].setMicrobe(agent);
+		if (agent instanceof Bacterium) {
 			numBacteria++;
+			driver.addBacterium(agent);
+		}
 		else if (agent instanceof Macrophage)
 			numMacrophages++;
-		driver.addMicrobe(agent);
-	}
-
-	public Microbe getContents(int row, int col)
-	{
-		return landscape[(row+numRows) % numRows][(col+numCols) % numCols];
-	}
-
-	public void decrementBacteria()
-	{
-		numBacteria--;
 		
+	}
+
+	public void removeBacterium(Bacterium agent)
+	{
+		landscape[(agent.getRow()+numRows) % numRows][(agent.getCol() + numCols) % numCols].removeMicrobe(agent);
+		numBacteria--;
+		driver.removeBacterium(agent);
+	}
+
+
+	public Bacterium getBacterium(int row, int col) 
+	{
+		return landscape[(row+numRows) % numRows][(col+numCols) % numCols].getBacterium();
+	}
+
+	public Macrophage getMacrophage(int row, int col) 
+	{
+		return landscape[(row+numRows) % numRows][(col+numCols) % numCols].getMacrophage();
+	}
+
+	public boolean containsBacterium(int row, int col)
+	{
+		Bacterium contents = landscape[(row+numRows) % numRows][(col+numCols) % numCols].getBacterium();
+		return (contents != null);
+	}
+
+	public boolean containsMacrophage(int row, int col)
+	{
+		Macrophage contents = landscape[(row+numRows) % numRows][(col+numCols) % numCols].getMacrophage();
+		return (contents != null);
+	}
+
+	public boolean isEmpty(int row, int col)
+	{
+		return ((!containsMacrophage(row,col)) && (!containsBacterium(row,col)));
+	}
+
+	
+	// Inner class containing the contents of a landscape location.
+	// May contain a bacterium, a macrophage, or both.
+	private class Cell
+	{
+		Bacterium bacterium;
+		Macrophage macrophage;
+
+		public Cell() {
+			bacterium = null;
+			macrophage = null;
+		}
+
+		public Cell(Bacterium b) {
+			bacterium = b;
+			macrophage = null;
+		}
+
+		public Cell(Macrophage m) {
+			bacterium = null;
+			macrophage = m;
+		}
+
+		public Bacterium getBacterium() {
+			return bacterium;
+		}
+
+		public Macrophage getMacrophage() {
+			return macrophage;
+		}
+
+		public void setMicrobe(Microbe m) {
+			if (m instanceof Bacterium) {
+				bacterium = (Bacterium)m;
+			} else {
+				macrophage = (Macrophage)m;
+			}
+		}
+
+		public void removeMicrobe(Microbe m) {
+			if (m instanceof Bacterium) {
+				bacterium = null;
+			} else {
+				macrophage = null;
+			}
+		}
+
+		public void setBacterum(Bacterium b) {
+			bacterium = b;
+		}
+
+		public void setMacrophage(Macrophage m) {
+			macrophage = m;
+		}
 	}
 }

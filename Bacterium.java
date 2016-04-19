@@ -1,15 +1,31 @@
 
 
-public class Bacterium extends Microbe {
+public class Bacterium extends Microbe 
+{
+
 	private double moveTime;
 	private double divideTime;
 
 	private double avgDivideTime;
 	
-	public Bacterium(Environment _world) {
+	public Bacterium(Environment _world) 
+	{
 		super(_world);
 		moveTime = id;
 		divideTime = id + 15;
+		     
+		avgDivideTime = 0;
+	} 
+
+	public Bacterium(Environment _world, double _currentTime) 
+	{
+		super(_world);
+
+		moveTime = _currentTime;
+		scheduleNextMove(); 	// generate a future move time
+
+		divideTime = _currentTime + 15;
+		scheduleNextDivide(); 	// generate a future divide time
 		
 		avgDivideTime = 0;
 	} 
@@ -52,12 +68,19 @@ public class Bacterium extends Microbe {
 			colOff = (currentSpace % 3) - 1;
 			rowOff = (currentSpace / 3) - 1;
 
-			if (!(world.getContents(position[0] + rowOff, position[1] + colOff) instanceof Bacterium))
+			if (!world.containsBacterium(position[0] + rowOff, position[1] + colOff))
 			{
 				// move bacteria to empty space
 				System.out.printf("Bacterium %d moving %d, %d\n", this.id, rowOff, colOff);
 				
 				position = world.moveMicrobe(this, rowOff, colOff);
+
+				// If you have moved into a macrophage, get eaten
+				Macrophage m = world.getMacrophage(position[0],position[1]);
+				if (m != null)
+				{
+					m.scheduleNextEat();
+				}
 				break;
 			}
 			currentSpace = (currentSpace + 1) % 9;
@@ -70,6 +93,8 @@ public class Bacterium extends Microbe {
 		
 	}
 
+	/*
+	*/
 	public void divide()
 	{
 		System.out.printf("Bacterium %d dividing\n",this.id);
@@ -80,18 +105,22 @@ public class Bacterium extends Microbe {
 		int rowOff;
 
 		int currentSpace = randomSpace;
-		do {
+		do 
+		{
 
 			colOff = (currentSpace % 3) - 1;
 			rowOff = (currentSpace / 3) - 1;
 
-			if (world.getContents(position[0] + rowOff, position[1] + colOff) == null)
+			if (world.isEmpty(position[0] + rowOff, position[1] + colOff))
 			{
-				Bacterium offspring = new Bacterium(world);
+				Bacterium offspring = new Bacterium(world, divideTime);
+
 				System.out.printf("\tcreated bacterium %d\n", offspring.id);
+
 				// add bacteria to empty space
 				world.addMicrobe(offspring, position[0] + rowOff, position[1] + colOff);
-				break; 
+
+				break; // found place to move to so break out of loop
 			}
 
 			currentSpace = (currentSpace + 1) % 9;
@@ -100,6 +129,7 @@ public class Bacterium extends Microbe {
 
 
 		scheduleNextDivide();
+
 		System.out.printf("\tNext move: %f, Next Divide: %f\n", moveTime, divideTime);
 	}
 

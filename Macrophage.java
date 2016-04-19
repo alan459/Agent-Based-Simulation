@@ -1,26 +1,33 @@
 
 
-public class Macrophage extends Microbe {
-	private double nextEventTime;
+public class Macrophage extends Microbe 
+{
+	private double moveTime;
+	private double eatTime;
 	
-	public Macrophage(Environment _world) {
+	public Macrophage(Environment _world) 
+	{
 		super(_world);
-		nextEventTime = id;
+		moveTime = id;
+		eatTime = Double.MAX_VALUE;
 	}
 
 	public double getNextEventTime()
 	{
-		return nextEventTime;
+		return Math.min(moveTime, eatTime);
 	}
 
 	public void executeNextEvent()
 	{
-		move();
+		if (moveTime < eatTime)
+			move();
+		else
+			eat();
 	}
 
 	public void scheduleNextMove()
 	{
-		nextEventTime += 30;
+		moveTime += 30;
 	}
 
 	public void move() 
@@ -29,35 +36,48 @@ public class Macrophage extends Microbe {
 
 		int numBacterium = 0;
 		int numMacrophages = 0;
-
-		for (int rowOff = -1; rowOff <= 1; rowOff++) // iterate through the surroundings to count microbe types
+		
+		// iterate through the surroundings to count microbe types
+		for (int rowOff = -1; rowOff <= 1; rowOff++) 
 		{
 			for (int colOff = -1; colOff <= 1; colOff++)
 			{
-				if (rowOff == 0 && colOff == 0) // skip iteration of current position
+				surroundings[iteration] = 0;
+
+				// skip iteration of current position
+				if (rowOff == 0 && colOff == 0) 
 				{
-					surroundings[iteration] = this;
+					surroundings[iteration] = MACROPHAGE_PRESENT;
 					iteration++;
+
 					continue;
 				}
-					
-				surroundings[iteration] = world.getContents(position[0] + rowOff, position[1] + colOff); // get what's at current position
 
-				if (surroundings[iteration] instanceof Bacterium)
-				{
-					numBacterium++;
-				}
-				else if (surroundings[iteration] instanceof Macrophage)
+				// surroundings[iteration] = world.getBacterium(position[0] + rowOff, position[1] + colOff); // get what's at current position
+
+
+				// if the current spot has a macrophage increment macrophage count
+				if (world.containsMacrophage(position[0] + rowOff, position[1] + colOff))
 				{
 					numMacrophages++;
+					surroundings[iteration] = MACROPHAGE_PRESENT;
 				}
 
+				// if the current spot has a macrophage increment bacterium count
+				else if (world.containsBacterium(position[0] + rowOff, position[1] + colOff))
+				{
+					numBacterium++;
+					surroundings[iteration] = BACTERIUM_PRESENT;
+				}
+
+				
 				iteration++;
 			}
 
 		}	// end count of microbe types
 
 
+		// randomly choose which bacterium to move to and eat
 		if (numBacterium > 0)
 		{
 			int nBacterium = random.nextInt(numBacterium); // randomly choose which bacteria to move to
@@ -65,7 +85,7 @@ public class Macrophage extends Microbe {
 			int bacteriaPosition;
 			for (bacteriaPosition = 0; nBacterium >= 0; bacteriaPosition++) // find the nth bacterium to move to 
 			{
-				if (surroundings[bacteriaPosition] instanceof Bacterium) 
+				if (surroundings[bacteriaPosition] == BACTERIUM_PRESENT) 
 				{
 					nBacterium--;
 				}
@@ -91,7 +111,7 @@ public class Macrophage extends Microbe {
 					colOff++;
 
 			//eat(surroundings[bacteriaPosition]); // assuming eat happens immediately
-			world.decrementBacteria();
+			scheduleNextEat();
 			System.out.printf("Macrophage %d moving %d, %d\n", this.id, rowOff, colOff);
 			position = world.moveMicrobe(this, rowOff, colOff);
 
@@ -99,17 +119,19 @@ public class Macrophage extends Microbe {
 
 		}
 
+		// No bacteria present so randomly choose which empty cell to move into
 		else if (numMacrophages < 8)
 		{
 			int numEmptySpaces = 8 - numMacrophages;
 
-			int n = random.nextInt(numEmptySpaces); // randomly choose which bacteria to move to
+			// randomly choose which bacteria to move to
+			int n = random.nextInt(numEmptySpaces); 
 
 			int emptySpace;
 			for (emptySpace = 0; n >= 0; emptySpace++) // find the nth bacterium to move to 
 			{
 				if (emptySpace == 4) continue;
-				if (surroundings[emptySpace] == null) 
+				if (surroundings[emptySpace] == 0) 
 				{
 					n--;
 				}
@@ -141,4 +163,26 @@ public class Macrophage extends Microbe {
 		scheduleNextMove();
 
 	}
+
+	public void eat()
+	{
+		Bacterium food = world.getBacterium(position[0],position[1]);
+		if (food != null) {
+			System.out.printf("Macrophage %d eating Microbe %d\n", this.id, food.id);
+					
+			world.removeBacterium(food);
+		}
+
+		eatTime = Double.MAX_VALUE;
+
+	}
+
+	/*
+	*/
+	public void scheduleNextEat()
+	{
+		eatTime = moveTime + 0.1;
+	}
+
 }
+

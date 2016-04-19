@@ -9,34 +9,44 @@ public class Driver extends SimulationManager {
 	ArrayList<Microbe> agents;
 	
 	
-	public Driver(int _numMacrophages, int _numBacteria, int _gridSize) {
+	public Driver(int _numMacrophages, int _numBacteria, int _gridSize) 
+    {
+        // initialize GUI grid size and gui cell width
 		super(_gridSize, 50);
-		
+		  
+        // set the number of each type of microbe in the environment
 		numMacrophages = _numMacrophages;
 		numBacteria    = _numBacteria;
 		
+        // add a list to keep track of all our microbes in our environment
 		agents = new ArrayList<Microbe>();
 		
+        // initialize our environement with the specified parameters and a pointer to the driver
 		world = new Environment(_gridSize, _gridSize, numMacrophages, numBacteria, this);
 		
-		// create bacteria
-		Bacterium nextBacterium;
-		for (int i = 0; i < numBacteria; i++) {
-			nextBacterium = new Bacterium(world);
-			agents.add(nextBacterium);
+		// add the specified number of bacterium to our world
+		Bacterium nextBacterium; 
+		for (int i = 0; i < numBacteria; i++) 
+        {
+			nextBacterium = new Bacterium(world);    // give our bacteria a pointer to the world
+			agents.add(nextBacterium);               // add the bacteria to the list in our driver 
 		}
 		
+        // add the specified number of macrophages to our world
 		Macrophage nextMacrophage;
-		for (int i = 0; i < numMacrophages; i++) {
-			nextMacrophage = new Macrophage(world);
-			agents.add(nextMacrophage);
+		for (int i = 0; i < numMacrophages; i++) 
+        {
+			nextMacrophage = new Macrophage(world);    // give our macrophage a pointer to the world
+			agents.add(nextMacrophage);                // add the macrophage to the list in our driver
 		}
 		
-		
-		for (Microbe agent : agents) {
+		// add the microbes the our enviroment
+		for (Microbe agent : agents) 
+        {
 			world.addMicrobe(agent);
 		}
 		
+        // initialize timer
 		time = 0;
 	}
 	
@@ -80,11 +90,18 @@ public class Driver extends SimulationManager {
     	return retval;
     }
 
-    public void addMicrobe(Microbe agent)
+    public void addBacterium(Microbe agent)
     {
         agents.add(agent);
         Collections.sort(agents);
+        numBacteria++;
+    }
 
+    public void removeBacterium(Microbe agent)
+    {
+        agents.remove(agent);
+        numBacteria--;
+        //Collections.sort(agents);
     }
 
     /**************************************************************************
@@ -97,6 +114,8 @@ public class Driver extends SimulationManager {
     public void run(double guiDelay) throws InterruptedException {
     	while(true) {
     		Collections.sort(agents);
+            time = (agents.get(0)).getNextEventTime();
+            System.out.printf("t = %f\n", time);
     		(agents.get(0)).executeNextEvent();
     		gui.update(guiDelay);
     	
