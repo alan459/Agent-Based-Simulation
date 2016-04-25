@@ -71,22 +71,31 @@ public class Driver extends SimulationManager {
      * Accessor method that returns the current time of the simulation clocl.
      * @return a double representing the current time in simulated time
      **************************************************************************/
-    public double getTime() {
+    public double getTime() 
+    {
     	return time;
     }
 
     /**************************************************************************
      * Method that constructs and returns a single list of all agents present.
+     *
      * This method is used by the gui drawing routines to update the gui based
      * on the number and positions of agents present.
      *
      * @return an ArrayList<AgentInterface> containing references to all agents
      **************************************************************************/
-    public ArrayList<AgentInterface> getListOfAgents() {
+    public ArrayList<AgentInterface> getListOfAgents() 
+    {
     	ArrayList<AgentInterface> retval = new ArrayList<AgentInterface>();
-    	for (Microbe m : agents) {
+        System.out.println(" Microbes: " + agents.size());
+    	for (Microbe m : agents) 
+        {
 			retval.add(m);    	
+            //System.out.print(" microbe " + m);
     	}
+
+
+
     	return retval;
     }
 
@@ -101,7 +110,6 @@ public class Driver extends SimulationManager {
     {
         agents.remove(agent);
         numBacteria--;
-        //Collections.sort(agents);
     }
 
     /**************************************************************************
