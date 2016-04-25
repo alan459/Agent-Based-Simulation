@@ -66,8 +66,10 @@ public class Environment {
 			numBacteria++;
 			driver.addBacterium(agent);
 		}
-		else if (agent instanceof Macrophage)
+		else if (agent instanceof Macrophage) {
 			numMacrophages++;
+			driver.addMacrophage(agent);
+		}
 		
 	}
 

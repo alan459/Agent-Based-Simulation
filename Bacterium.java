@@ -5,16 +5,17 @@ public class Bacterium extends Microbe
 
 	private double moveTime;
 	private double divideTime;
-
-	private double avgDivideTime;
+	
+	private double resource;
 	
 	public Bacterium(Environment _world) 
 	{
 		super(_world);
-		moveTime = id;
-		divideTime = id + 15;
-		     
-		avgDivideTime = 0;
+		moveTime = 0;
+		scheduleNextMove();
+		divideTime = 0;
+		scheduleNextDivide();
+		    
 	} 
 
 	public Bacterium(Environment _world, double _currentTime) 
@@ -24,10 +25,9 @@ public class Bacterium extends Microbe
 		moveTime = _currentTime;
 		scheduleNextMove(); 	// generate a future move time
 
-		divideTime = _currentTime + 15;
+		divideTime = _currentTime;
 		scheduleNextDivide(); 	// generate a future divide time
 		
-		avgDivideTime = 0;
 	} 
 
 	// Return the time of the next event
@@ -47,12 +47,12 @@ public class Bacterium extends Microbe
 
 	public void scheduleNextMove() 
 	{
-		moveTime += 30;
+		moveTime += nextExp(Parameters.BACT_INTER_MOVE);
 	}
 
 	public void scheduleNextDivide() 
 	{
-		divideTime += 30;
+		divideTime += nextExp(Parameters.BACT_INTER_DIVIDE);
 	}
 
 	public void move() 

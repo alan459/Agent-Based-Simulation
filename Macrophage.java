@@ -4,37 +4,65 @@ public class Macrophage extends Microbe
 {
 	private double moveTime;
 	private double eatTime;
+	private double divideTime;
 	
 	
 	public Macrophage(Environment _world) 
 	{
 		super(_world);
-		moveTime = id;
+		
+		moveTime = 0;
+		scheduleNextMove();
+		
+		divideTime = 0;
+		scheduleNextDivide();
+		
 		eatTime = Double.MAX_VALUE;
 	}
+	
+	public Macrophage(Environment _world, double _currentTime) 
+	{
+		super(_world);
+
+		moveTime = _currentTime;
+		scheduleNextMove(); 	// generate a future move time
+
+		divideTime = _currentTime;
+		scheduleNextDivide(); 	// generate a future divide time
+		
+		eatTime = Double.MAX_VALUE;
+	} 
 
 	public double getNextEventTime()
 	{
-		return Math.min(moveTime, eatTime);
+		return Math.min(divideTime, Math.min(moveTime, eatTime));
 	}
 
 	public void executeNextEvent()
 	{
-		if (moveTime < eatTime)
+		if (moveTime < eatTime && moveTime < divideTime) {
 			move();
-		else
+		} else if (eatTime < divideTime) {
 			eat();
+		} else {
+			divide();
+		}
 	}
 
 	public void scheduleNextMove()
 	{
-		moveTime += 30;
+		moveTime += nextExp(Parameters.MACRO_INTER_MOVE);
 	}
 	
 	
 	public void scheduleNextEat(double currentTime)
 	{
 		eatTime = currentTime;
+	}
+	
+	public void scheduleNextDivide()
+	{
+		divideTime += nextExp(Parameters.MACRO_INTER_DIVIDE);
 	}
 
 	public void move() 
@@ -184,7 +212,75 @@ public class Macrophage extends Microbe
 
 	}
 
+	public void divide()
+	{
+		
+		if(numBacteriumInSurroundings() < Parameters.MIN_BACT_TO_DIVIDE)
+		{
+			System.out.printf("Macrophage %d skipped dividing not enough bacterium\n",this.id);
+			scheduleNextDivide();
+			return;
+		}
+		
+		System.out.printf("Macrophage %d dividing\n",this.id);
+		
+		int randomSpace = random.nextInt(9);
+
+		int colOff;
+		int rowOff;
+
+		int currentSpace = randomSpace;
+		do 
+		{
+			colOff = (currentSpace % 3) - 1;
+			rowOff = (currentSpace / 3) - 1;
+
+			if (world.isEmpty(position[0] + rowOff, position[1] + colOff))
+			{
+				Macrophage offspring = new Macrophage(world, divideTime);
+
+				System.out.printf("\tcreated macrophage %d\n", offspring.id);
+
+				// add macrophage to empty space
+				world.addMicrobe(offspring, position[0] + rowOff, position[1] + colOff);
+
+				break; // found place to move to so break out of loop
+			}
+
+			currentSpace = (currentSpace + 1) % 9;
+
+		} while (currentSpace != randomSpace);
+
+
+		scheduleNextDivide();
+
+		System.out.printf("\tNext move: %f, Next Divide: %f\n", moveTime, divideTime);
+	}
 	
+	public int numBacteriumInSurroundings()
+	{
+		int numBacterium = 0;
+		
+		int colOff;
+		int rowOff;
+
+		int currentSpace = 0;
+		do 
+		{
+			colOff = (currentSpace % 3) - 1;
+			rowOff = (currentSpace / 3) - 1;
+
+			if (world.containsBacterium(position[0] + rowOff, position[1] + colOff))
+			{
+				numBacterium++;
+			}
+
+			currentSpace = (currentSpace + 1) % 9;
+
+		} while (currentSpace != 0);
+		
+		return numBacterium;
+	}
 
 }
 

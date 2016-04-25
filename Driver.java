@@ -110,6 +110,20 @@ public class Driver extends SimulationManager {
         }
         //Collections.sort(agents);
     }
+    
+    public void addMacrophage(Microbe agent)
+    {
+    	agents.add(agent);
+        Collections.sort(agents);
+        numMacrophages++;
+    }
+    
+    public void removeMacrophage(Microbe agent)
+    {
+    	if (agents.remove(agent)) {
+        	numMacrophages--;
+        }
+    }
 
     /**************************************************************************
      * Method used to run the simulation.  This method should contain the
@@ -142,7 +156,7 @@ public class Driver extends SimulationManager {
     	Driver d = new Driver(numMacrophages, numBacteria, numRowCols);
     	
     	try {
-    		d.run(3);
+    		d.run(.1);
     	} catch (InterruptedException ex) {
     		
     	}

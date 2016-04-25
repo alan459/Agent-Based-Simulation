@@ -11,7 +11,7 @@ public class Parameters
 	// macrophage parameter values
 	protected static double MACRO_INTER_MOVE = 3.0; // Exp(m)
 	protected static double MACRO_INTER_DIVIDE = 20.0; // Exp(m)
-	protected static int MIN_BACT_TO_DIVIDE = 5;
+	protected static int MIN_BACT_TO_DIVIDE = 3;
 	
 	// cell parameter values
 	protected static double REGROWTH_RATE_MEAN = 1.0; // Normal(m,s)
