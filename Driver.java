@@ -48,6 +48,9 @@ public class Driver extends SimulationManager {
 		
         // initialize timer
 		time = 0;
+		
+		// Initialize GUI
+		this.gui = new AgentGUI(this, _gridSize, 50);
 	}
 	
 
@@ -71,31 +74,25 @@ public class Driver extends SimulationManager {
      * Accessor method that returns the current time of the simulation clocl.
      * @return a double representing the current time in simulated time
      **************************************************************************/
-    public double getTime() 
-    {
+    public double getTime() {
     	return time;
     }
 
     /**************************************************************************
      * Method that constructs and returns a single list of all agents present.
-     *
      * This method is used by the gui drawing routines to update the gui based
      * on the number and positions of agents present.
      *
      * @return an ArrayList<AgentInterface> containing references to all agents
      **************************************************************************/
-    public ArrayList<AgentInterface> getListOfAgents() 
-    {
+    public ArrayList<AgentInterface> getListOfAgents() {
     	ArrayList<AgentInterface> retval = new ArrayList<AgentInterface>();
-        System.out.println(" Microbes: " + agents.size());
-    	for (Microbe m : agents) 
-        {
-			retval.add(m);    	
-            //System.out.print(" microbe " + m);
+    	for (int i = 0; i < agents.size(); i++) {
+    		retval.add(agents.get(i));
     	}
-
-
-
+    	//for (Microbe m : agents) {
+		//	retval.add(m);    	
+    	//}
     	return retval;
     }
 
@@ -108,8 +105,24 @@ public class Driver extends SimulationManager {
 
     public void removeBacterium(Microbe agent)
     {
-        agents.remove(agent);
-        numBacteria--;
+        if (agents.remove(agent)) {
+        	numBacteria--;
+        }
+        //Collections.sort(agents);
+    }
+    
+    public void addMacrophage(Microbe agent)
+    {
+    	agents.add(agent);
+        Collections.sort(agents);
+        numMacrophages++;
+    }
+    
+    public void removeMacrophage(Microbe agent)
+    {
+    	if (agents.remove(agent)) {
+        	numMacrophages--;
+        }
     }
 
     /**************************************************************************
@@ -124,6 +137,7 @@ public class Driver extends SimulationManager {
     		Collections.sort(agents);
             time = (agents.get(0)).getNextEventTime();
             System.out.printf("t = %f\n", time);
+            if (agents.size() == 0) {return;}
     		(agents.get(0)).executeNextEvent();
     		gui.update(guiDelay);
     	
@@ -143,7 +157,7 @@ public class Driver extends SimulationManager {
     	Driver d = new Driver(numMacrophages, numBacteria, numRowCols);
     	
     	try {
-    		d.run(3);
+    		d.run(.01);
     	} catch (InterruptedException ex) {
     		
     	}

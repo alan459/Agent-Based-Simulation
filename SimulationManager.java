@@ -22,7 +22,7 @@ public abstract class SimulationManager
      **************************************************************************/
     public SimulationManager(int numCells, int guiCellWidth)
     {
-        this.gui = new AgentGUI(this, numCells, guiCellWidth);
+        //this.gui = new AgentGUI(this, numCells, guiCellWidth);
     }
 
     // ************************************************************************

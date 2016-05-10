@@ -82,6 +82,11 @@ public abstract class Microbe implements AgentInterface, Comparable<Microbe>,
 	public abstract double getNextEventTime();
 
 	public abstract void executeNextEvent();
+	
+	public double nextExp(double mean)
+	{
+		return Math.log(1-random.nextDouble())/(-(1/mean));
+	}
 
 
 

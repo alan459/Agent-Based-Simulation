@@ -33,9 +33,9 @@ public class Environment {
 	}
 	
 	public int[] moveMicrobe(Microbe agent, int rowOff, int colOff) {
-		int currentRow = agent.getRow();
-		int currentCol = agent.getCol();
-		landscape[(currentRow + numRows) % numRows][(currentCol + numCols) % numCols].removeMicrobe(agent);
+		int currentRow = ( agent.getRow() + numRows ) % numRows;
+		int currentCol = ( agent.getCol() + numCols ) % numCols;
+		landscape[currentRow][currentCol].removeMicrobe(agent);
 		
 		int newRow = (currentRow + rowOff + numRows) % numRows;
 		int newCol = (currentCol + colOff + numCols) % numCols;
@@ -61,12 +61,15 @@ public class Environment {
 	// (as a result of a divide)
 	public void addMicrobe(Microbe agent, int row, int col) {
 		landscape[(row+numRows) % numRows][(col+numCols) % numCols].setMicrobe(agent);
+		agent.setRowCol((row+numRows) % numRows,(col+numCols) % numCols);
 		if (agent instanceof Bacterium) {
 			numBacteria++;
 			driver.addBacterium(agent);
 		}
-		else if (agent instanceof Macrophage)
+		else if (agent instanceof Macrophage) {
 			numMacrophages++;
+			driver.addMacrophage(agent);
+		}
 		
 	}
 
@@ -105,6 +108,15 @@ public class Environment {
 		return ((!containsMacrophage(row,col)) && (!containsBacterium(row,col)));
 	}
 
+	public double harvest(double currentTime, int row, int col, boolean cont)
+	{
+		return landscape[(row+numRows) % numRows][(col+numCols) % numCols].harvestResource(currentTime, cont);
+	}
+
+	public double getRegrowth(int row, int col)
+	{
+		return landscape[(row+numRows) % numRows][(col+numCols) % numCols].getRegrowthRate();
+	}
 	
 	// Inner class containing the contents of a landscape location.
 	// May contain a bacterium, a macrophage, or both.
@@ -113,30 +125,62 @@ public class Environment {
 		Bacterium bacterium;
 		Macrophage macrophage;
 
+		double resource;
+		double regrowthRate;
+		double lastHarvestTime;
+
+		double maxResource;
+
 		public Cell() {
 			bacterium = null;
 			macrophage = null;
+
+			resource = 0;
+			lastHarvestTime = 0;
+
+			maxResource = random.nextGaussian() * Parameters.MAX_RESOURCE_SD + Parameters.MAX_RESOURCE_MEAN; 
+			regrowthRate = random.nextGaussian() * Parameters.REGROWTH_RATE_SD + Parameters.REGROWTH_RATE_MEAN;
 		}
 
-		public Cell(Bacterium b) {
+		public Cell(Bacterium b) 
+		{
 			bacterium = b;
 			macrophage = null;
+			resource = 0;
+			lastHarvestTime = 0;
+
+			maxResource = random.nextGaussian() * Parameters.MAX_RESOURCE_SD + Parameters.MAX_RESOURCE_MEAN; 
+			regrowthRate = random.nextGaussian() * Parameters.REGROWTH_RATE_SD + Parameters.REGROWTH_RATE_MEAN;
 		}
 
-		public Cell(Macrophage m) {
+		public Cell(Macrophage m) 
+		{
 			bacterium = null;
 			macrophage = m;
+			resource = 0;
+			lastHarvestTime = 0;
+
+			maxResource = random.nextGaussian() * Parameters.MAX_RESOURCE_SD + Parameters.MAX_RESOURCE_MEAN; 
+			regrowthRate = random.nextGaussian() * Parameters.REGROWTH_RATE_SD + Parameters.REGROWTH_RATE_MEAN;
 		}
 
-		public Bacterium getBacterium() {
+		public double getRegrowthRate()
+		{
+			return regrowthRate;
+		}
+
+		public Bacterium getBacterium() 
+		{
 			return bacterium;
 		}
 
-		public Macrophage getMacrophage() {
+		public Macrophage getMacrophage() 
+		{
 			return macrophage;
 		}
 
-		public void setMicrobe(Microbe m) {
+		public void setMicrobe(Microbe m) 
+		{
 			if (m instanceof Bacterium) {
 				bacterium = (Bacterium)m;
 			} else {
@@ -144,7 +188,8 @@ public class Environment {
 			}
 		}
 
-		public void removeMicrobe(Microbe m) {
+		public void removeMicrobe(Microbe m) 
+		{
 			if (m instanceof Bacterium) {
 				bacterium = null;
 			} else {
@@ -152,12 +197,31 @@ public class Environment {
 			}
 		}
 
-		public void setBacterum(Bacterium b) {
+		public void setBacterum(Bacterium b) 
+		{
 			bacterium = b;
 		}
 
-		public void setMacrophage(Macrophage m) {
+		public void setMacrophage(Macrophage m) 
+		{
 			macrophage = m;
+		}
+		
+		public double harvestResource(double currentTime, boolean continuous) 
+		{
+			// amount of resource currently at the cell when the bacteria eats it
+			double resourceHarvested = resource + regrowthRate * (currentTime - lastHarvestTime);
+
+			if (!continuous && resourceHarvested > maxResource) 
+			{
+				resourceHarvested = maxResource;
+			}
+
+			resource = 0;
+			lastHarvestTime = currentTime;
+			
+			//System.out.printf("Harvested %f resource\n", resourceHarvested);
+			return resourceHarvested;
 		}
 	}
 }

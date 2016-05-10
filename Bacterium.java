@@ -5,58 +5,95 @@ public class Bacterium extends Microbe
 
 	private double moveTime;
 	private double divideTime;
+	private double dieTime;
 
-	private double avgDivideTime;
+	private double prevTime;
+
+	private double consumptionRate;
+	private double resource;
 	
 	public Bacterium(Environment _world) 
 	{
 		super(_world);
-		moveTime = id;
-		divideTime = id + 15;
-		     
-		avgDivideTime = 0;
+		moveTime = 0;
+		scheduleNextMove();
+		divideTime = 0;
+		scheduleNextDivide();
+		prevTime = 0;
+
+		resource = random.nextGaussian() * Parameters.INIT_RESOURCE_SD + Parameters.INIT_RESOURCE_MEAN;
+		dieTime = Double.MAX_VALUE;
+		consumptionRate = random.nextGaussian() * Parameters.CONSUMPTION_RATE_SD + Parameters.CONSUMPTION_RATE_MEAN;
+		    
 	} 
 
-	public Bacterium(Environment _world, double _currentTime) 
+	public Bacterium(Environment _world, double _currentTime, double _resource, double _consumptionRate) 
 	{
 		super(_world);
 
 		moveTime = _currentTime;
 		scheduleNextMove(); 	// generate a future move time
 
-		divideTime = _currentTime + 15;
+		divideTime = _currentTime;
 		scheduleNextDivide(); 	// generate a future divide time
+		prevTime = _currentTime;
+
+		resource = _resource;
+		dieTime = Double.MAX_VALUE;
+		consumptionRate = _consumptionRate;
 		
-		avgDivideTime = 0;
 	} 
 
 	// Return the time of the next event
 	public double getNextEventTime()
 	{
-		return(Math.min(moveTime,divideTime));
+		return(Math.min(dieTime, Math.min(moveTime,divideTime)));
 	}
 
 	public void executeNextEvent()
 	{
-		if (moveTime < divideTime) {
+		prevTime = getNextEventTime();
+
+		if (moveTime < divideTime && moveTime < dieTime) {
 			move();
-		} else {
+		} else if (divideTime < dieTime) {
 			divide();
+		} else {
+			die();
 		}
 	}
 
 	public void scheduleNextMove() 
 	{
-		moveTime += 30;
+		moveTime += nextExp(Parameters.BACT_INTER_MOVE);
 	}
 
 	public void scheduleNextDivide() 
 	{
-		divideTime += 30;
+		divideTime += nextExp(Parameters.BACT_INTER_DIVIDE);
+	}
+
+	public void scheduleDeath()
+	{
+		double netResourceLossRate = consumptionRate - world.getRegrowth(position[0], position[1]);
+		if (netResourceLossRate > 0) {
+			dieTime = resource / netResourceLossRate + getNextEventTime();
+			//System.out.printf("Die time %f\n", dieTime);
+		} else {
+			dieTime = Double.MAX_VALUE;
+		}
+	}
+
+	public void die()
+	{
+		// System.out.printf("=============Bacterium %d Died============\n", this.id);
+		world.removeBacterium(this);
 	}
 
 	public void move() 
 	{
+		resource += world.harvest(moveTime, position[0], position[1], true);
+
 		int randomSpace = random.nextInt(9);
 
 		int colOff;
@@ -68,10 +105,11 @@ public class Bacterium extends Microbe
 			colOff = (currentSpace % 3) - 1;
 			rowOff = (currentSpace / 3) - 1;
 
+			// Search for an adjacent space which does not contain another bacterium
 			if (!world.containsBacterium(position[0] + rowOff, position[1] + colOff))
 			{
 				// move bacteria to empty space
-				System.out.printf("Bacterium %d moving %d, %d\n", this.id, rowOff, colOff);
+				//System.out.printf("Bacterium %d moving %d, %d\n", this.id, rowOff, colOff);
 				
 				position = world.moveMicrobe(this, rowOff, colOff);
 
@@ -79,8 +117,29 @@ public class Bacterium extends Microbe
 				Macrophage m = world.getMacrophage(position[0],position[1]);
 				if (m != null)
 				{
-					m.scheduleNextEat();
+					//System.out.printf("\tBacterium %d will be eaten by Macrophage %d\n", this.id, m.id);
+					m.scheduleNextEat(moveTime);
 				}
+				else {
+					// Only harvest if there is no macrophage in the space
+					resource += world.harvest(moveTime, position[0], position[1], false);
+
+					// consume some of your resource
+					resource -= (getNextEventTime() - prevTime) * consumptionRate;
+
+					// if you consumed all your resources, die
+					if (resource < 0)
+					{
+						die();
+
+						// get out of method if you die
+						return;
+					}
+
+					// if you are still alive, schedule a next death time based on current resources and consumuption rate
+					scheduleDeath();
+				}
+
 				break;
 			}
 			currentSpace = (currentSpace + 1) % 9;
@@ -89,7 +148,8 @@ public class Bacterium extends Microbe
 		// if no empty spaces, don't move
 
 		scheduleNextMove();
-		System.out.printf("\tNext move: %f, Next Divide: %f\n", moveTime, divideTime);
+		//System.out.printf("\tNext move: %f, Next Divide: %f, Die: %f\n", moveTime, divideTime, dieTime);
+		//System.out.printf("\tResource: %f\n", resource);
 		
 	}
 
@@ -97,7 +157,9 @@ public class Bacterium extends Microbe
 	*/
 	public void divide()
 	{
-		System.out.printf("Bacterium %d dividing\n",this.id);
+		//System.out.printf("Bacterium %d dividing\n",this.id);
+
+		resource = resource / 2;
 
 		int randomSpace = random.nextInt(9);
 
@@ -107,15 +169,14 @@ public class Bacterium extends Microbe
 		int currentSpace = randomSpace;
 		do 
 		{
-
 			colOff = (currentSpace % 3) - 1;
 			rowOff = (currentSpace / 3) - 1;
 
 			if (world.isEmpty(position[0] + rowOff, position[1] + colOff))
 			{
-				Bacterium offspring = new Bacterium(world, divideTime);
+				Bacterium offspring = new Bacterium(world, divideTime, resource, consumptionRate);
 
-				System.out.printf("\tcreated bacterium %d\n", offspring.id);
+				//System.out.printf("\tcreated bacterium %d\n", offspring.id);
 
 				// add bacteria to empty space
 				world.addMicrobe(offspring, position[0] + rowOff, position[1] + colOff);
@@ -128,9 +189,12 @@ public class Bacterium extends Microbe
 		} while (currentSpace != randomSpace);
 
 
+		scheduleDeath();
+
 		scheduleNextDivide();
 
-		System.out.printf("\tNext move: %f, Next Divide: %f\n", moveTime, divideTime);
+		//System.out.printf("\tNext move: %f, Next Divide: %f, Die: %f\n", moveTime, divideTime, dieTime);
+		//System.out.printf("\tResource: %f\n", resource);
 	}
 
 
